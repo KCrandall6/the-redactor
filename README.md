@@ -1,2 +1,2 @@
-# the-redactor
+# The Redactor
 A way to customize and effectuate sensitive document redactions
