@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import JSZip from 'jszip';
-// import nlp from 'compromise/two';
+import nlp from 'compromise/three';
 import Redactor from './Redactor';
 
 const Home = () => {
@@ -10,7 +10,7 @@ const Home = () => {
   const [isFileInvalid, setIsFileInvalid] = useState(false);
   const [isRedacting, setIsRedacting] = useState(false);
   const [parsedFile, setParsedFile] = useState(null);
-  // const [wordMap, setWordMap] = useState({});
+  const [wordMap, setWordMap] = useState({});
 
   const onDocSuccess = async () => {
     try {
@@ -20,12 +20,35 @@ const Home = () => {
         const arrayBuffer = event.target.result;
         const zip = new JSZip();
         const doc = await zip.loadAsync(arrayBuffer);
-        const content = await doc.file('word/document.xml').async('string');
+        const contentXml = await doc.file('word/document.xml').async('string');
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(contentXml, 'text/xml');
+        const paragraphs = xmlDoc.getElementsByTagName('w:t');
+        let textContent = '';
+        for (let i = 0; i < paragraphs.length; i++) {
+          const paragraphText = paragraphs[i].textContent;
+          if (i > 0) {
+            textContent += ' ';
+          }
+          textContent += paragraphText;
+        }
+        
         // parsedFile is so I have a copy of the original, to eventually reconstruct and replace redacted words
-        setParsedFile(content);
+        setParsedFile(contentXml);
+        console.log('textContent:', textContent);
+  
+        // Evaluate text HERE with Compromise, passing the pronouns (names, places, dates) into the wordMap hook
+        const doc2 = nlp(textContent);
+        const names = doc2.people().json();
+        const places = doc2.places().json();
+        const orgs = doc2.organizations().json();
+        setWordMap({
+          Names: names,
+          Places: places,
+          Organizations: orgs,
+        });
 
-        // want to evaluate text HERE with Comprise, passing the pronouns (names, places, dates) into the wordMap hook
-
+  
         setStartRedact(!startRedact);
         setIsRedacting(false);
       };
@@ -34,6 +57,7 @@ const Home = () => {
       setIsRedacting(false);
     }
   };
+  
   
   
 
@@ -89,7 +113,7 @@ const Home = () => {
             </Form>
           </>
         ) : (
-          <Redactor selectedFile={selectedFile} parsedFile={parsedFile}/>
+          <Redactor selectedFile={selectedFile} parsedFile={parsedFile} wordMap={wordMap}/>
         )}
       </div>
     </>

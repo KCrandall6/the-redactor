@@ -2,7 +2,7 @@ import React from 'react';
 
 const Redactor = ({selectedFile, parsedFile, wordMap}) => {
 
-  console.log('o', parsedFile)
+  console.log('wordmap', wordMap)
 
   return (
     <>
