@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import JSZip from 'jszip';
 import nlp from 'compromise/three';
+import datePlugin from 'compromise-dates'
 import Redactor from './Redactor';
+
+nlp.plugin(datePlugin);
 
 const Home = () => {
   const [startRedact, setStartRedact] = useState(false);
@@ -35,19 +38,39 @@ const Home = () => {
         
         // parsedFile is so I have a copy of the original, to eventually reconstruct and replace redacted words
         setParsedFile(contentXml);
-        console.log('textContent:', textContent);
   
         // Evaluate text HERE with Compromise, passing the pronouns (names, places, dates) into the wordMap hook
         const doc2 = nlp(textContent);
         const names = doc2.people().json();
         const places = doc2.places().json();
         const orgs = doc2.organizations().json();
+        const dates = doc2.dates().json();
+        const filteredDates = dates.filter(date => {
+          // Regular expressions for explicit and numeric date formats
+          const explicitDateRegex = /^(?:\d{1,2}\s)?(?:January|February|March|April|May|June|July|August|September|October|November|December)(?:\s\d{1,2}(?:st|nd|rd|th)?)?(?:\s\d{4})?$/i;
+          const numericDateRegex = /^(?:\d{1,4}[-./])?\d{1,2}[-./]\d{1,4}$/;
+          const yearRegex = /^\d{4}$/;
+          const monthRegex = /^(?:January|February|March|April|May|June|July|August|September|October|November|December)$/i;
+        
+          // Split the text into individual words
+          const words = date.text.split(/\s+/);
+        
+          // Check if any word matches the specified formats
+          const hasExplicitDate = words.some(word => explicitDateRegex.test(word));
+          const hasNumericDate = words.some(word => numericDateRegex.test(word));
+          const hasYear = words.some(word => yearRegex.test(word));
+          const hasMonth = words.some(word => monthRegex.test(word));
+        
+          // Filter out unwanted date formats
+          return (hasExplicitDate || hasNumericDate || hasYear || hasMonth);
+        });
+        
         setWordMap({
           Names: names,
           Places: places,
           Organizations: orgs,
+          Dates: filteredDates,
         });
-
   
         setStartRedact(!startRedact);
         setIsRedacting(false);
@@ -57,9 +80,6 @@ const Home = () => {
       setIsRedacting(false);
     }
   };
-  
-  
-  
 
   const handleFileSelect = (event) => {
     setSelectedFile(null);
@@ -79,7 +99,6 @@ const Home = () => {
       setIsFileInvalid(true);
     }
   };
-  
 
   return (
     <>
