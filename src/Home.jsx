@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Form, Spinner } from 'react-bootstrap';
+import JSZip from 'jszip';
+// import nlp from 'compromise/two';
 import Redactor from './Redactor';
 
 const Home = () => {
@@ -7,16 +9,33 @@ const Home = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isFileInvalid, setIsFileInvalid] = useState(false);
   const [isRedacting, setIsRedacting] = useState(false);
+  const [parsedFile, setParsedFile] = useState(null);
+  // const [wordMap, setWordMap] = useState({});
 
   const onDocSuccess = async () => {
     try {
       setIsRedacting(true);
-      setStartRedact(!startRedact);
-      setIsRedacting(false);
+      const fileReader = new FileReader();
+      fileReader.onload = async function (event) {
+        const arrayBuffer = event.target.result;
+        const zip = new JSZip();
+        const doc = await zip.loadAsync(arrayBuffer);
+        const content = await doc.file('word/document.xml').async('string');
+        // parsedFile is so I have a copy of the original, to eventually reconstruct and replace redacted words
+        setParsedFile(content);
+
+        // want to evaluate text HERE with Comprise, passing the pronouns (names, places, dates) into the wordMap hook
+
+        setStartRedact(!startRedact);
+        setIsRedacting(false);
+      };
+      fileReader.readAsArrayBuffer(selectedFile);
     } catch {
       setIsRedacting(false);
     }
   };
+  
+  
 
   const handleFileSelect = (event) => {
     setSelectedFile(null);
@@ -25,15 +44,15 @@ const Home = () => {
     if (
       file &&
       (file.type === 'application/msword' ||
-        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-        file.type === 'application/pdf')
+        // update later to include support for pdf redactions 
+        // file.type === 'application/pdf' ||
+        file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     ) {
       setIsFileInvalid(false);
       setSelectedFile(file);
     } else {
       // Display an error message or handle the invalid file type
       setIsFileInvalid(true);
-      console.log('Invalid file type. Please select a Word document (doc or docx) or PDF.');
     }
   };
   
@@ -70,7 +89,7 @@ const Home = () => {
             </Form>
           </>
         ) : (
-          <Redactor selectedFile={selectedFile} />
+          <Redactor selectedFile={selectedFile} parsedFile={parsedFile}/>
         )}
       </div>
     </>

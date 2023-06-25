@@ -1,6 +1,8 @@
 import React from 'react';
 
-const Redactor = () => {
+const Redactor = ({selectedFile, parsedFile, wordMap}) => {
+
+  console.log('o', parsedFile)
 
   return (
     <>
