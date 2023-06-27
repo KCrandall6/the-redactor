@@ -3,7 +3,7 @@ import { Button, Form, Spinner } from 'react-bootstrap';
 import JSZip from 'jszip';
 import nlp from 'compromise/three';
 import datePlugin from 'compromise-dates'
-import Redactor from './Redactor';
+import Redactor from './RedactionForm/Redactor';
 
 nlp.plugin(datePlugin);
 
@@ -70,6 +70,7 @@ const Home = () => {
           Places: places,
           Organizations: orgs,
           Dates: filteredDates,
+          Additional: [],
         });
   
         setStartRedact(!startRedact);
@@ -132,7 +133,7 @@ const Home = () => {
             </Form>
           </>
         ) : (
-          <Redactor selectedFile={selectedFile} parsedFile={parsedFile} wordMap={wordMap}/>
+          <Redactor selectedFile={selectedFile} parsedFile={parsedFile} wordMap={wordMap} setWordMap={setWordMap}/>
         )}
       </div>
     </>

@@ -2,3 +2,9 @@
   margin-right: 30px;
   margin-left: 30px;
 }
+
+.accordion-button {
+  background-color: #cee2fe !important;
+  font-size: x-large !important;
+  font-weight: bold !important;
+}
