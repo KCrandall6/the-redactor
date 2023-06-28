@@ -41,10 +41,17 @@ const Home = () => {
   
         // Evaluate text HERE with Compromise, passing the pronouns (names, places, dates) into the wordMap hook
         const doc2 = nlp(textContent);
-        const names = doc2.people().json();
-        const places = doc2.places().json();
-        const orgs = doc2.organizations().json();
-        const dates = doc2.dates().json();
+        let pronouns = doc2.pronouns().not('I|me|myself|it|you').json();
+        let names = doc2.people().json();
+        let places = doc2.places().json();
+        const filteredPronouns = pronouns.filter((pronoun) => {
+          const word = pronoun.text;
+          const excludedPronouns = ['I', 'me', 'myself', 'it', 'you'];
+          const regex = new RegExp(`\\b${word}\\b`, 'i');
+          return !excludedPronouns.some((excluded) => regex.test(excluded));
+        });        
+        let orgs = doc2.organizations().json();
+        let dates = doc2.dates().json();
         const filteredDates = dates.filter(date => {
           // Regular expressions for explicit and numeric date formats
           const explicitDateRegex = /^(?:\d{1,2}\s)?(?:January|February|March|April|May|June|July|August|September|October|November|December)(?:\s\d{1,2}(?:st|nd|rd|th)?)?(?:\s\d{4})?$/i;
@@ -64,12 +71,19 @@ const Home = () => {
           // Filter out unwanted date formats
           return (hasExplicitDate || hasNumericDate || hasYear || hasMonth);
         });
+
+        function removeDuplicatesByProperty(array, property) {
+          return array.filter((item, index, self) =>
+            self.findIndex((obj) => obj[property] === item[property]) === index
+          );
+        };
         
         setWordMap({
-          Names: names,
-          Places: places,
-          Organizations: orgs,
-          Dates: filteredDates,
+          Names: removeDuplicatesByProperty(names, 'text'),
+          Places: removeDuplicatesByProperty(places, 'text'),
+          Organizations: removeDuplicatesByProperty(orgs, 'text'),
+          Dates: removeDuplicatesByProperty(filteredDates, 'text'),
+          Pronouns: removeDuplicatesByProperty(filteredPronouns, 'text'),
           Additional: [],
         });
   
