@@ -1,2 +1,2 @@
-# The Redactor
-A way to customize and effectuate sensitive document redactions
+# Doc Redactor
+A way to customize and effectuate sensitive document redactions.
