@@ -2,18 +2,20 @@ import React, { useState } from 'react';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import JSZip from 'jszip';
 import nlp from 'compromise/three';
-import datePlugin from 'compromise-dates'
+import datePlugin from 'compromise-dates';
 import Redactor from './RedactionForm/Redactor';
+import PreviewIteration from './PreviewIteration';
 
 nlp.plugin(datePlugin);
 
 const Home = () => {
-  const [startRedact, setStartRedact] = useState(false);
+  const [redactStep, setRedactStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isFileInvalid, setIsFileInvalid] = useState(false);
   const [isRedacting, setIsRedacting] = useState(false);
   const [parsedFile, setParsedFile] = useState(null);
   const [wordMap, setWordMap] = useState({});
+  const [redactFiller, setRedactFiller] = useState('[redacted]');
 
   const onDocSuccess = async () => {
     try {
@@ -41,53 +43,61 @@ const Home = () => {
   
         // Evaluate text HERE with Compromise, passing the pronouns (names, places, dates) into the wordMap hook
         const doc2 = nlp(textContent);
-        let pronouns = doc2.pronouns().not('I|me|myself|it|you').json();
+        let pronouns = doc2
+        .pronouns()
+        .concat(doc2.match('(male|female)'))
+        .json();
+          const filteredPronouns = pronouns.filter((pronoun) => {
+            const word = pronoun.text;
+            const excludedPronouns = ['I', 'me', 'myself', 'it', 'you'];
+            const regex = new RegExp(`\\b${word}\\b`, 'i');
+            return !excludedPronouns.some((excluded) => regex.test(excluded));
+          });      
         let names = doc2.people().json();
         let places = doc2.places().json();
-        const filteredPronouns = pronouns.filter((pronoun) => {
-          const word = pronoun.text;
-          const excludedPronouns = ['I', 'me', 'myself', 'it', 'you'];
-          const regex = new RegExp(`\\b${word}\\b`, 'i');
-          return !excludedPronouns.some((excluded) => regex.test(excluded));
-        });        
         let orgs = doc2.organizations().json();
+        let ages = doc2.match('#Value years old').numbers().lessThan(105).json();
         let dates = doc2.dates().json();
-        const filteredDates = dates.filter(date => {
-          // Regular expressions for explicit and numeric date formats
-          const explicitDateRegex = /^(?:\d{1,2}\s)?(?:January|February|March|April|May|June|July|August|September|October|November|December)(?:\s\d{1,2}(?:st|nd|rd|th)?)?(?:\s\d{4})?$/i;
-          const numericDateRegex = /^(?:\d{1,4}[-./])?\d{1,2}[-./]\d{1,4}$/;
-          const yearRegex = /^\d{4}$/;
-          const monthRegex = /^(?:January|February|March|April|May|June|July|August|September|October|November|December)$/i;
-        
-          // Split the text into individual words
-          const words = date.text.split(/\s+/);
-        
-          // Check if any word matches the specified formats
-          const hasExplicitDate = words.some(word => explicitDateRegex.test(word));
-          const hasNumericDate = words.some(word => numericDateRegex.test(word));
-          const hasYear = words.some(word => yearRegex.test(word));
-          const hasMonth = words.some(word => monthRegex.test(word));
-        
-          // Filter out unwanted date formats
-          return (hasExplicitDate || hasNumericDate || hasYear || hasMonth);
-        });
+          const filteredDates = dates.filter(date => {
+            // Regular expressions for explicit and numeric date formats
+            const explicitDateRegex = /^(?:\d{1,2}\s)?(?:January|February|March|April|May|June|July|August|September|October|November|December)(?:\s\d{1,2}(?:st|nd|rd|th)?)?(?:\s\d{4})?$/i;
+            const numericDateRegex = /^(?:\d{1,4}[-./])?\d{1,2}[-./]\d{1,4}$/;
+            const yearRegex = /^\d{4}$/;
+            const monthRegex = /^(?:January|February|March|April|May|June|July|August|September|October|November|December)$/i;
+          
+            // Split the text into individual words
+            const words = date.text.split(/\s+/);
+          
+            // Check if any word matches the specified formats
+            const hasExplicitDate = words.some(word => explicitDateRegex.test(word));
+            const hasNumericDate = words.some(word => numericDateRegex.test(word));
+            const hasYear = words.some(word => yearRegex.test(word));
+            const hasMonth = words.some(word => monthRegex.test(word));
+          
+            // Filter out unwanted date formats
+            return (hasExplicitDate || hasNumericDate || hasYear || hasMonth);
+          });
 
-        function removeDuplicatesByProperty(array, property) {
-          return array.filter((item, index, self) =>
-            self.findIndex((obj) => obj[property] === item[property]) === index
-          );
-        };
+          function removeDuplicatesByProperty(array, property) {
+            return array.filter((item, index, self) => {
+              const editedText = item[property].replace(/[.,:;]+$/, ''); // Remove punctuation from the end
+              item[property] = editedText; // Update the text property with edited text
+              return self.findIndex((obj) => obj[property] === editedText) === index;
+            });
+          }
+          
         
         setWordMap({
           Names: removeDuplicatesByProperty(names, 'text'),
           Places: removeDuplicatesByProperty(places, 'text'),
           Organizations: removeDuplicatesByProperty(orgs, 'text'),
           Dates: removeDuplicatesByProperty(filteredDates, 'text'),
+          Ages: removeDuplicatesByProperty(ages, 'text'),
           Pronouns: removeDuplicatesByProperty(filteredPronouns, 'text'),
           Additional: [],
         });
   
-        setStartRedact(!startRedact);
+        setRedactStep(2);
         setIsRedacting(false);
       };
       fileReader.readAsArrayBuffer(selectedFile);
@@ -118,7 +128,7 @@ const Home = () => {
   return (
     <>
       <div className='d-flex flex-column align-items-center'>
-        {!startRedact ? (
+        {redactStep === 1 ? (
           <>
             <Form className='mt-5 d-flex flex-column align-items-center text-center'>
               <Form.Group controlId="formFileLg" className="mb-5">
@@ -146,9 +156,11 @@ const Home = () => {
               </Button>
             </Form>
           </>
-        ) : (
-          <Redactor selectedFile={selectedFile} parsedFile={parsedFile} wordMap={wordMap} setWordMap={setWordMap}/>
-        )}
+        ) : redactStep === 2 ? (
+          <Redactor selectedFile={selectedFile} parsedFile={parsedFile} wordMap={wordMap} setWordMap={setWordMap} redactFiller={redactFiller} setRedactFiller={setRedactFiller} setRedactStep={setRedactStep}/>
+        ) : redactStep === 3 ? (
+          <PreviewIteration />
+        ) : null}
       </div>
     </>
   );

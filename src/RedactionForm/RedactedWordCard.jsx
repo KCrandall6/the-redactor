@@ -4,8 +4,8 @@ import EditCloseModal from './EditCloseModal';
 
 const RedactedWordCard = ({category, word, wordMap, setWordMap}) => {
 
-  console.log('word', word);
-  console.log('wordmap', wordMap);
+  // console.log('word', word);
+  // console.log('wordmap', wordMap);
 
   const deletePhrase = (phrase) => {
     const updatedWordMap = { ...wordMap };

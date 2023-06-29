@@ -43,7 +43,7 @@ const EditCloseModal = ({word, editPhrase, deletePhrase}) => {
         <Modal.Body>
           <Form>
             <Form.Control
-            className='text-center fs-4'
+            className='text-center fs-4 border-primary'
             defaultValue={word.text}
             onChange={handleInputChange}
             />
