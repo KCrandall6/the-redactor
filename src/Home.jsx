@@ -28,16 +28,19 @@ const Home = () => {
         const contentXml = await doc.file('word/document.xml').async('string');
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(contentXml, 'text/xml');
-        const paragraphs = xmlDoc.getElementsByTagName('w:t');
-        let textContent = '';
+        const paragraphs = xmlDoc.getElementsByTagName('w:p');
+        let textContentArr = [];
+        let currentParagraph = '';
         for (let i = 0; i < paragraphs.length; i++) {
-          const paragraphText = paragraphs[i].textContent;
-          if (i > 0) {
-            textContent += ' ';
+          const paragraphText = paragraphs[i].textContent.trim(); // Remove leading/trailing whitespace
+          currentParagraph += paragraphText + ' '; // Concatenate the paragraph text with a space separator
+          if (paragraphText.endsWith('\n') || i === paragraphs.length - 1) {
+            textContentArr.push(currentParagraph.trim()); // Push the complete paragraph text to the array
+            currentParagraph = ''; // Reset the current paragraph
           }
-          textContent += paragraphText;
         }
-        
+        const textContent = textContentArr.join(' ');
+
         // parsedFile is so I have a copy of the original, to eventually reconstruct and replace redacted words
         setParsedFile(contentXml);
   
@@ -56,28 +59,31 @@ const Home = () => {
         let names = doc2.people().json();
         let places = doc2.places().json();
         let orgs = doc2.organizations().json();
-        let ages = doc2.match('#Value years old').numbers().lessThan(105).json();
+        let ages = doc2.match('(#Value|#TextValue) years old').numbers().lessThan(105).json();
         let dates = doc2.dates().json();
-          const filteredDates = dates.filter(date => {
-            // Regular expressions for explicit and numeric date formats
-            const explicitDateRegex = /^(?:\d{1,2}\s)?(?:January|February|March|April|May|June|July|August|September|October|November|December)(?:\s\d{1,2}(?:st|nd|rd|th)?)?(?:\s\d{4})?$/i;
-            const numericDateRegex = /^(?:\d{1,4}[-./])?\d{1,2}[-./]\d{1,4}$/;
-            const yearRegex = /^\d{4}$/;
-            const monthRegex = /^(?:January|February|March|April|May|June|July|August|September|October|November|December)$/i;
-          
-            // Split the text into individual words
-            const words = date.text.split(/\s+/);
-          
-            // Check if any word matches the specified formats
-            const hasExplicitDate = words.some(word => explicitDateRegex.test(word));
-            const hasNumericDate = words.some(word => numericDateRegex.test(word));
-            const hasYear = words.some(word => yearRegex.test(word));
-            const hasMonth = words.some(word => monthRegex.test(word));
-          
-            // Filter out unwanted date formats
-            return (hasExplicitDate || hasNumericDate || hasYear || hasMonth);
-          });
-
+        const filteredDates = dates.filter(date => {
+          // Regular expressions for explicit and numeric date formats
+          const explicitDateRegex = /^(?:\d{1,2}\s)?(?:January|February|March|April|May|June|July|August|September|October|November|December)(?:\s\d{1,2}(?:st|nd|rd|th)?)?(?:\s\d{4})?$/i;
+          const numericDateRegex = /^(?:\d{1,2}[-./])?(?:\d{1,2}[-./])?\d{2}(?:\d{2})?$/;
+          const yearRegex = /^\d{4}$/;
+          const monthRegex = /^(?:January|February|March|April|May|June|July|August|September|October|November|December)$/i;
+        
+          // Split the text into individual words
+          const words = date.text.split(/\s+/);
+        
+          // Remove punctuation from words
+          const sanitizedWords = words.map(word => word.replace(/[.,:;]+$/, ''));
+        
+          // Check if any word matches the specified formats
+          const hasExplicitDate = sanitizedWords.some(word => explicitDateRegex.test(word));
+          const hasNumericDate = sanitizedWords.some(word => numericDateRegex.test(word));
+          const hasYear = sanitizedWords.some(word => yearRegex.test(word));
+          const hasMonth = sanitizedWords.some(word => monthRegex.test(word));
+        
+          // Filter out unwanted date formats
+          return hasExplicitDate || hasNumericDate || hasYear || hasMonth;
+        });
+        
           function removeDuplicatesByProperty(array, property) {
             return array.filter((item, index, self) => {
               const editedText = item[property].replace(/[.,:;]+$/, ''); // Remove punctuation from the end
@@ -86,7 +92,6 @@ const Home = () => {
             });
           }
           
-        
         setWordMap({
           Names: removeDuplicatesByProperty(names, 'text'),
           Places: removeDuplicatesByProperty(places, 'text'),
@@ -96,7 +101,7 @@ const Home = () => {
           Pronouns: removeDuplicatesByProperty(filteredPronouns, 'text'),
           Additional: [],
         });
-  
+
         setRedactStep(2);
         setIsRedacting(false);
       };
