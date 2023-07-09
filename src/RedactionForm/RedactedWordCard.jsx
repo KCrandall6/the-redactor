@@ -4,9 +4,6 @@ import EditCloseModal from './EditCloseModal';
 
 const RedactedWordCard = ({category, word, wordMap, setWordMap}) => {
 
-  // console.log('word', word);
-  // console.log('wordmap', wordMap);
-
   const deletePhrase = (phrase) => {
     const updatedWordMap = { ...wordMap };
     updatedWordMap[category] = updatedWordMap[category].filter(
@@ -26,7 +23,6 @@ const RedactedWordCard = ({category, word, wordMap, setWordMap}) => {
       setWordMap(updatedWordMap);
     }
   };
-  
 
   return (
       <Card className="m-1">
