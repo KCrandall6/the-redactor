@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from 'react-bootstrap';
-import JSZip from 'jszip';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
-import PizZipUtils from 'pizzip/utils/index.js';
 import { saveAs } from 'file-saver';
 
 
@@ -56,11 +54,6 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller }) =>
 
 
 
-  
-  function loadFile(url, callback) {
-    PizZipUtils.getBinaryContent(url, callback);
-  }
-
   const saveAsWordDoc = () => {
     if (!redactedFile) {
       console.error('Redacted file content is empty. Please redact the content first.');
@@ -68,21 +61,27 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller }) =>
     }
   
     // Convert redacted XML content to a Blob
-    const content = new Blob([redactedFile], { type: 'text/xml' });
+    const content = new Blob([redactedFile], { type: 'application/zip' });
   
-    // Read the binary content of selectedFile as Uint8Array
+    // Read the binary content of selectedFile as ArrayBuffer
     const fileReader = new FileReader();
-    fileReader.onload = function (event) {
+    fileReader.onload = async function (event) {
       const arrayBuffer = event.target.result;
       const uint8Array = new Uint8Array(arrayBuffer);
   
       // Load the .docx template using PizZip with the selectedFile content as buffer
-      const zip = new PizZip(uint8Array);
-      const doc = new Docxtemplater(zip);
+      const zip = new PizZip();
+      zip.load(uint8Array);
   
-      // Set the data to replace in the template
-      doc.setData({
-        Kurt: 'John',
+      // Read the redacted XML content as text
+      const redactedContent = await new Response(content).text();
+  
+      // Set the redacted XML content in the zip variable
+      zip.file('word/document.xml', redactedContent);
+  
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
       });
   
       try {
@@ -106,11 +105,6 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller }) =>
     fileReader.readAsArrayBuffer(selectedFile);
   };
   
-
-  
-
-  console.log('selectedFile', selectedFile)
-
 
   return (
     <>

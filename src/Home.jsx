@@ -31,8 +31,6 @@ const Home = () => {
         const paragraphs = xmlDoc.getElementsByTagName('w:p');
         let textContentArr = [];
         let currentParagraph = '';
-        console.log('xml', contentXml);
-        console.log('xmlDoc', xmlDoc);
         for (let i = 0; i < paragraphs.length; i++) {
           const paragraphText = paragraphs[i].textContent.trim(); // Remove leading/trailing whitespace
           currentParagraph += paragraphText + ' '; // Concatenate the paragraph text with a space separator
