@@ -166,7 +166,7 @@ const Home = () => {
         ) : redactStep === 2 ? (
           <Redactor selectedFile={selectedFile} parsedFile={parsedFile} wordMap={wordMap} setWordMap={setWordMap} redactFiller={redactFiller} setRedactFiller={setRedactFiller} setRedactStep={setRedactStep}/>
         ) : redactStep === 3 ? (
-          <PreviewIteration parsedFile={parsedFile} wordMap={wordMap} redactFiller={redactFiller}/>
+          <PreviewIteration selectedFile={selectedFile} parsedFile={parsedFile} wordMap={wordMap} redactFiller={redactFiller}/>
         ) : null}
       </div>
     </>
