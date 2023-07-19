@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Accordion, Button, Container, Form, Row, Col } from 'react-bootstrap';
+import { Accordion, Button, Container, Form} from 'react-bootstrap';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { saveAs } from 'file-saver';
