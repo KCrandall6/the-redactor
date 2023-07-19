@@ -4,7 +4,7 @@ import JSZip from 'jszip';
 import nlp from 'compromise/three';
 import datePlugin from 'compromise-dates';
 import Redactor from './RedactionForm/Redactor';
-import PreviewIteration from './PreviewIteration';
+import PreviewIteration from './Preview/PreviewIteration';
 
 nlp.plugin(datePlugin);
 
@@ -130,6 +130,14 @@ const Home = () => {
     }
   };
 
+  const reset = () => {
+    setRedactStep(1);
+    setSelectedFile(null);
+    setParsedFile(null);
+    setWordMap({});
+    setRedactFiller('[redacted]')
+  };
+
   return (
     <>
       <div className='d-flex flex-column align-items-center'>
@@ -164,7 +172,7 @@ const Home = () => {
         ) : redactStep === 2 ? (
           <Redactor selectedFile={selectedFile} parsedFile={parsedFile} wordMap={wordMap} setWordMap={setWordMap} redactFiller={redactFiller} setRedactFiller={setRedactFiller} setRedactStep={setRedactStep}/>
         ) : redactStep === 3 ? (
-          <PreviewIteration selectedFile={selectedFile} parsedFile={parsedFile} wordMap={wordMap} redactFiller={redactFiller}/>
+          <PreviewIteration selectedFile={selectedFile} parsedFile={parsedFile} wordMap={wordMap} redactFiller={redactFiller} setRedactFiller={setRedactFiller} setWordMap={setWordMap} reset={reset}/>
         ) : null}
       </div>
     </>
