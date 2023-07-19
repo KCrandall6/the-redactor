@@ -42,7 +42,7 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     // Insert new line character after the complete XML declaration
     updatedFile = updatedFile.slice(0, index) + '\n' + updatedFile.slice(index);
     setRedactedFile(updatedFile);
-  }, [parsedFile, wordMap]);
+  }, [parsedFile, wordMap, redactFiller]);
 
   useEffect(() => {
     if (redactedFile) {
