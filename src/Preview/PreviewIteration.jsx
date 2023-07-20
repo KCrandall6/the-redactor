@@ -3,13 +3,16 @@ import { Accordion, Button, Container, Form} from 'react-bootstrap';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { saveAs } from 'file-saver';
+import html2pdf from 'html2pdf.js';
 import AddWordModal from './AddWordModal';
 import RedactedWordCard from '../RedactionForm/RedactedWordCard';
 
 
 const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setRedactFiller, setWordMap, reset }) => {
   const [redactedFile, setRedactedFile] = useState(null);
-  const outputRef = useRef(null);
+  const outputDocRef = useRef(null);
+  const outputPDFRef = useRef(null);
+  const [htmlContent, setHtmlContent] = useState('');
 
   useEffect(() => {
     const parser = new DOMParser();
@@ -26,7 +29,6 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
           for (let k = 0; k < wordList.length; k++) {
             const wordObj = wordList[k];
             const word = wordObj.text;
-            // const redactFiller = redactFiller;
             const regex = new RegExp(`\\b${word}\\b`, 'g');
             text = text.replace(regex, redactFiller);
           }
@@ -45,6 +47,41 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
   }, [parsedFile, wordMap, redactFiller]);
 
   useEffect(() => {
+    const convertToHTML = async (docxFile) => {
+      const arrayBuffer = await docxFile.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const zip = new PizZip();
+      zip.load(uint8Array);
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+      });
+      try {
+        doc.render();
+      } catch (error) {
+        console.error('Error rendering document:', error);
+        return;
+      }
+      const updatedFile = doc.getZip().generate({
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+
+      const htmlContent = await convertToHTMLString(updatedFile);
+      return htmlContent;
+    };
+
+    const convertToHTMLString = (docxFile) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const htmlContent = event.target.result;
+          resolve(htmlContent);
+        };
+        reader.readAsText(docxFile);
+      });
+    };
+
     if (redactedFile) {
       // Convert redacted XML content to a Blob
       const content = new Blob([redactedFile], { type: 'application/zip' });
@@ -78,20 +115,47 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
           mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         });
         // Store the output in the ref
-        outputRef.current = output;
+        outputDocRef.current = output;
+
+        // Convert .docx to HTML and set the HTML content
+        const htmlContent = await convertToHTML(output);
+        setHtmlContent(htmlContent);
+
+        // Set the PDF content using the HTML content
+        outputPDFRef.current = htmlContent;
       };
       fileReader.readAsArrayBuffer(selectedFile);
     }
   }, [redactedFile, selectedFile]);
 
+
   const saveAsWordDoc = () => {
-    if (!outputRef.current) {
+    if (!outputDocRef.current) {
       console.error('Redacted file content is empty. Please redact the content first.');
       return;
     }
     // Save the .docx file with a custom name
-    saveAs(outputRef.current, 'output.docx');
+    saveAs(outputDocRef.current, 'output.docx');
   };
+
+  const saveAsPDF = () => {
+    if (!outputPDFRef.current) {
+      console.error('PDF content is empty. Please convert the .docx file to PDF first.');
+      return;
+    }
+
+    const element = document.createElement('div');
+    element.innerHTML = outputPDFRef.current;
+
+    // Convert HTML to PDF using html2pdf.js
+    html2pdf()
+      .from(element)
+      .save()
+      .then(() => console.log('PDF saved successfully'))
+      .catch((error) => console.error('Error saving PDF:', error));
+  };
+  
+  console.log('html', htmlContent)
 
   const handleInputChange = (event) => {
     setRedactFiller(event.target.value);
@@ -101,13 +165,13 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     <>
       <Button className='mt-2' size='sm' variant="warning" onClick={reset}>reset</Button>
       <h1>A preview of the final</h1>
-      {/* Preview of the document */}
+      {/* preview of the pdf */}
       <div className='d-flex flex-wrap justify-content-center'>
         <Button className='mt-3 ms-3 me-3' size='lg' onClick={saveAsWordDoc}>Download as Word Doc</Button>
-        <Button className='mt-3 ms-3 me-3' size='lg'>Download as PDF</Button>
+        <Button className='mt-3 ms-3 me-3' size='lg' onClick={saveAsPDF}>Download as PDF</Button>
       </div>
       <Container className="mt-5 d-flex flex-column justify-content-center align-items-center text-center" style={{ maxWidth: '900px' }}>
-        <p>Edit the input below to change the word to be redacted</p>
+        <p>Need more changes? add more words or phrases to be redacted or changed the redaction word to another of your choice below. When you are ready to create a new iteration, click the 'Generate' button below.</p>
         <Form style={{ maxWidth: '300px' }}>
           <Form.Control
             className='text-center fs-3 ps-5 pe-5 border-primary'
@@ -134,6 +198,7 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
         </div>
         <AddWordModal wordMap={wordMap} setWordMap={setWordMap} />
       </Container>
+      <Button siz='lg' className="mb-5">Generate New </Button>
     </>
   );
 };
