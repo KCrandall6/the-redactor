@@ -3,6 +3,7 @@ import { Accordion, Button, Container, Form} from 'react-bootstrap';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { saveAs } from 'file-saver';
+import { endpoint } from '../configEndpoint';
 import AddWordModal from './AddWordModal';
 import RedactedWordCard from '../RedactionForm/RedactedWordCard';
 
@@ -10,7 +11,7 @@ import RedactedWordCard from '../RedactionForm/RedactedWordCard';
 const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setRedactFiller, setWordMap, reset }) => {
   const [redactedFile, setRedactedFile] = useState(null);
   const outputDocRef = useRef(null);
-  // const outputPDFRef = useRef(null);
+  const outputPDFRef = useRef(null);
 
 
   useEffect(() => {
@@ -80,7 +81,26 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
         });
         // Store the output in the ref
         outputDocRef.current = output;
-      };
+
+        // CONVERT .DOCX DOCUMENT INTO A PDF THROUGH THE docxToPdf netflify function
+        // maybe need to fetch(`${endpoint}/.netlify/functions/docxToPdf`)
+        // then set the response to outputPDFRef, so that it is similar to how I store the .docx file.
+      // Upload the redacted .docx file to the backend
+      const formData = new FormData();
+      formData.append('docxFile', output);
+      fetch(`${endpoint}/.netlify/functions/uploadDocx`, {
+        method: 'POST',
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // Set the temporary URL received from the backend to the ref
+          outputPDFRef.current = data.temporaryURL;
+        })
+        .catch((error) => {
+          console.error('Error uploading the .docx file:', error);
+        });
+    };
       fileReader.readAsArrayBuffer(selectedFile);
     }
   }, [redactedFile, selectedFile]);
@@ -96,7 +116,13 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
   };
 
   const saveAsPDF = () => {
+    if (!outputPDFRef) {
+      console.error('PDF content is empty. Please convert the .docx file to PDF first.');
+      return;
+    }
 
+    // Save the PDF Blob with a custom name
+    saveAs(outputPDFRef, 'output.pdf');
   };
   
 
