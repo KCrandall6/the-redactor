@@ -3,7 +3,6 @@ import { Accordion, Button, Container, Form} from 'react-bootstrap';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { saveAs } from 'file-saver';
-import html2pdf from 'html2pdf.js';
 import AddWordModal from './AddWordModal';
 import RedactedWordCard from '../RedactionForm/RedactedWordCard';
 
@@ -11,8 +10,8 @@ import RedactedWordCard from '../RedactionForm/RedactedWordCard';
 const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setRedactFiller, setWordMap, reset }) => {
   const [redactedFile, setRedactedFile] = useState(null);
   const outputDocRef = useRef(null);
-  const outputPDFRef = useRef(null);
-  const [htmlContent, setHtmlContent] = useState('');
+  // const outputPDFRef = useRef(null);
+
 
   useEffect(() => {
     const parser = new DOMParser();
@@ -47,41 +46,6 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
   }, [parsedFile, wordMap, redactFiller]);
 
   useEffect(() => {
-    const convertToHTML = async (docxFile) => {
-      const arrayBuffer = await docxFile.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      const zip = new PizZip();
-      zip.load(uint8Array);
-      const doc = new Docxtemplater(zip, {
-        paragraphLoop: true,
-        linebreaks: true,
-      });
-      try {
-        doc.render();
-      } catch (error) {
-        console.error('Error rendering document:', error);
-        return;
-      }
-      const updatedFile = doc.getZip().generate({
-        type: 'blob',
-        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      });
-
-      const htmlContent = await convertToHTMLString(updatedFile);
-      return htmlContent;
-    };
-
-    const convertToHTMLString = (docxFile) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = function (event) {
-          const htmlContent = event.target.result;
-          resolve(htmlContent);
-        };
-        reader.readAsText(docxFile);
-      });
-    };
-
     if (redactedFile) {
       // Convert redacted XML content to a Blob
       const content = new Blob([redactedFile], { type: 'application/zip' });
@@ -116,13 +80,6 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
         });
         // Store the output in the ref
         outputDocRef.current = output;
-
-        // Convert .docx to HTML and set the HTML content
-        const htmlContent = await convertToHTML(output);
-        setHtmlContent(htmlContent);
-
-        // Set the PDF content using the HTML content
-        outputPDFRef.current = htmlContent;
       };
       fileReader.readAsArrayBuffer(selectedFile);
     }
@@ -139,23 +96,10 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
   };
 
   const saveAsPDF = () => {
-    if (!outputPDFRef.current) {
-      console.error('PDF content is empty. Please convert the .docx file to PDF first.');
-      return;
-    }
 
-    const element = document.createElement('div');
-    element.innerHTML = outputPDFRef.current;
-
-    // Convert HTML to PDF using html2pdf.js
-    html2pdf()
-      .from(element)
-      .save()
-      .then(() => console.log('PDF saved successfully'))
-      .catch((error) => console.error('Error saving PDF:', error));
   };
   
-  console.log('html', htmlContent)
+
 
   const handleInputChange = (event) => {
     setRedactFiller(event.target.value);
