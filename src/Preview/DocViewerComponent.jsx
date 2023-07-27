@@ -27,6 +27,7 @@ const DocViewerComponent = ({ pdf }) => {
       <DocViewer
         pluginRenderers={DocViewerRenderers}
         documents={docs}
+        className='border'
       />
     </>
   );

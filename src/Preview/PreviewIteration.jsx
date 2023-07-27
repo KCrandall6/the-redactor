@@ -14,6 +14,7 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
   const [redactedFile, setRedactedFile] = useState(null);
   const outputDocRef = useRef(null);
   const [pdf, setPdf] = useState(null);
+  const [fileName, setFileName] = useState('');
 
   useEffect(() => {
     const parser = new DOMParser();
@@ -94,6 +95,9 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     };
       fileReader.readAsArrayBuffer(selectedFile);
     }
+    if (selectedFile) {
+      setFileName(selectedFile.name.substring(0, selectedFile.name.length-5) + '_redacted')
+    }
   }, [redactedFile, selectedFile]);
 
 
@@ -102,9 +106,10 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
       console.error('Redacted file content is empty. Please redact the content first.');
       return;
     }
-    // Save the .docx file with a custom name
-    saveAs(outputDocRef.current, 'output.docx');
+    // Save the .docx file with a custom name using saveAs method
+    saveAs(outputDocRef.current, fileName);
   };
+  
 
   const saveAsPDF = () => {
     if (!pdf) {
@@ -113,9 +118,10 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     }
     // Convert the ArrayBuffer to a Blob
     const pdfBlob = new Blob([pdf], { type: 'application/pdf' });
-    // Save the PDF Blob with a custom name
-    saveAs(pdfBlob, 'output.pdf');
+    // Save the PDF Blob with a custom name using saveAs method
+    saveAs(pdfBlob, fileName);
   };
+  
   
   const handleInputChange = (event) => {
     setRedactFiller(event.target.value);
@@ -123,43 +129,48 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
 
   return (
     <>
-      <Button className='mt-2' size='sm' variant="warning" onClick={reset}>reset</Button>
-      <h1>A preview of the final</h1>
-      {/* preview of the pdf */}
-      <DocViewerComponent pdf={pdf}/>
-      <div className='d-flex flex-wrap justify-content-center'>
-        <Button className='mt-3 ms-3 me-3' size='lg' onClick={saveAsWordDoc}>Download as Word Doc</Button>
-        <Button className='mt-3 ms-3 me-3' size='lg' onClick={saveAsPDF}>Download as PDF</Button>
-      </div>
-      <Container className="mt-5 d-flex flex-column justify-content-center align-items-center text-center" style={{ maxWidth: '900px' }}>
-        <p>Need more changes? add more words or phrases to be redacted or changed the redaction word to another of your choice below. When you are ready to create a new iteration, click the 'Generate' button below.</p>
-        <Form style={{ maxWidth: '300px' }}>
-          <Form.Control
-            className='text-center fs-3 ps-5 pe-5 border-primary'
-            defaultValue={redactFiller}
-            onChange={handleInputChange}
-            />
-        </Form>
-      </Container>
-      <Container className="mt-5 mb-5 d-flex align-items-start text-center" style={{ maxWidth: '900px' }}>
-        {/* <p>Add instructions?</p> */}
-        <div className="w-100"> {/* Use a div with w-100 class to create a full-width row */}
-          <Accordion className='text-start w-100' defaultActiveKey={['0']} alwaysOpen>
-            <Accordion.Item eventKey="0">
-              <Accordion.Header style={{}}>
-                Additional Words/Phrases ({wordMap.Additional.length})
-              </Accordion.Header>
-              <Accordion.Body className="d-flex flex-wrap p-2" style={{ flexGrow: 1 }}> {/* Set flexGrow: 1 */}
-                {wordMap.Additional.map((word, innerIndex) => (
-                  <RedactedWordCard key={innerIndex + 1} category={'Additional'} word={word} wordMap={wordMap} setWordMap={setWordMap} />
-                ))}
-              </Accordion.Body>
-            </Accordion.Item>
-          </Accordion>
+      <Container className='text-center' style={{ maxWidth: '900px' }}>
+        <div className='d-flex justify-content-end mt-2 mb-3'>
+          <Button className='mt-2' size='sm' variant="warning" onClick={reset}>reset</Button>
         </div>
-        <AddWordModal wordMap={wordMap} setWordMap={setWordMap} />
+        <div>
+          <h4>Preview</h4>
+        </div>
+        {/* preview of the pdf */}
+        <DocViewerComponent pdf={pdf}/>
+        <div className='d-flex flex-wrap justify-content-center'>
+          <Button className='mt-3 ms-3 me-3' size='lg' onClick={saveAsWordDoc}>Download as Word Doc</Button>
+          <Button className='mt-3 ms-3 me-3' size='lg' onClick={saveAsPDF}>Download as PDF</Button>
+        </div>
+        <Container className="mt-5 d-flex flex-column justify-content-center align-items-center text-center" style={{ maxWidth: '900px' }}>
+          <p>Need more changes? add more words or phrases to be redacted or changed the redaction word to another of your choice below. When you are ready to create a new iteration, click the 'Generate' button below.</p>
+          <Form style={{ maxWidth: '300px' }}>
+            <Form.Control
+              className='text-center fs-3 ps-5 pe-5 border-primary'
+              defaultValue={redactFiller}
+              onChange={handleInputChange}
+              />
+          </Form>
+        </Container>
+        <Container className="mt-5 mb-5 d-flex align-items-start text-center" style={{ maxWidth: '900px' }}>
+          {/* <p>Add instructions?</p> */}
+          <div className="w-100"> {/* Use a div with w-100 class to create a full-width row */}
+            <Accordion className='text-start w-100' defaultActiveKey={['0']} alwaysOpen>
+              <Accordion.Item eventKey="0">
+                <Accordion.Header style={{}}>
+                  Additional Words/Phrases ({wordMap.Additional.length})
+                </Accordion.Header>
+                <Accordion.Body className="d-flex flex-wrap p-2" style={{ flexGrow: 1 }}> {/* Set flexGrow: 1 */}
+                  {wordMap.Additional.map((word, innerIndex) => (
+                    <RedactedWordCard key={innerIndex + 1} category={'Additional'} word={word} wordMap={wordMap} setWordMap={setWordMap} />
+                  ))}
+                </Accordion.Body>
+              </Accordion.Item>
+            </Accordion>
+          </div>
+          <AddWordModal wordMap={wordMap} setWordMap={setWordMap} />
+        </Container>
       </Container>
-      <Button siz='lg' className="mb-5">Generate New </Button>
     </>
   );
 };

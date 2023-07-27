@@ -60,6 +60,8 @@ const Home = () => {
         let places = doc2.places().json();
         let orgs = doc2.organizations().json();
         let ages = doc2.match('(#Value|#TextValue) years old').numbers().lessThan(105).json();
+        let ages1 = doc2.match('aged (#Value|#TextValue)').numbers().lessThan(105).json();
+        let ages2 = doc2.match('age (#Value|#TextValue)').numbers().lessThan(105).json();
         let dates = doc2.dates().json();
         const filteredDates = dates.filter(date => {
           // Regular expressions for explicit and numeric date formats
@@ -97,7 +99,7 @@ const Home = () => {
           Places: removeDuplicatesByProperty(places, 'text'),
           Organizations: removeDuplicatesByProperty(orgs, 'text'),
           Dates: removeDuplicatesByProperty(filteredDates, 'text'),
-          Ages: removeDuplicatesByProperty(ages, 'text'),
+          Ages: removeDuplicatesByProperty([ages, ages1, ages2].flat(2), 'text'),
           Pronouns: removeDuplicatesByProperty(filteredPronouns, 'text'),
           Additional: [],
         });
@@ -145,7 +147,7 @@ const Home = () => {
           <>
             <Form className='mt-5 d-flex flex-column align-items-center text-center'>
               <Form.Group controlId="formFileLg" className="mb-5">
-                <Form.Label>Choose a document or PDF to start redactions</Form.Label>
+                <Form.Label>Choose a Word document to start redactions</Form.Label>
                 <Form.Control
                   type="file"
                   size="lg"
