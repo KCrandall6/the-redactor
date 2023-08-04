@@ -15,7 +15,12 @@ const Home = () => {
   const [isRedacting, setIsRedacting] = useState(false);
   const [parsedFile, setParsedFile] = useState(null);
   const [wordMap, setWordMap] = useState({});
-  const [redactFiller, setRedactFiller] = useState('[redacted]');
+  const [redactFiller, setRedactFiller] = useState({
+    filler: '[redacted]',
+    styling: {}
+  });
+
+  console.log('red', redactFiller)
 
   const onDocSuccess = async () => {
     try {
@@ -137,7 +142,10 @@ const Home = () => {
     setSelectedFile(null);
     setParsedFile(null);
     setWordMap({});
-    setRedactFiller('[redacted]')
+    setRedactFiller({
+      filler: '[redacted]',
+      styling: {}
+    })
   };
 
   return (

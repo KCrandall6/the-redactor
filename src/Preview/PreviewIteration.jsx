@@ -20,33 +20,51 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(parsedFile, 'text/xml');
     const paragraphs = xmlDoc.getElementsByTagName('w:p');
+  
+    // Create an array of wordMap entries sorted by length in descending order
+    const sortedWordMap = Object.entries(wordMap).sort(
+      ([aKey], [bKey]) => bKey.length - aKey.length
+    );
+  
     for (let i = 0; i < paragraphs.length; i++) {
       const paragraph = paragraphs[i];
       const textNodes = paragraph.getElementsByTagName('w:t');
+      let combinedText = '';
+  
       for (let j = 0; j < textNodes.length; j++) {
         const textNode = textNodes[j];
-        let text = textNode.textContent.trim();
-        for (const key in wordMap) {
-          const wordList = wordMap[key];
-          for (let k = 0; k < wordList.length; k++) {
-            const wordObj = wordList[k];
-            const word = wordObj.text;
-            const regex = new RegExp(`\\b${word}\\b`, 'g');
-            text = text.replace(regex, redactFiller);
-          }
+        const text = textNode.textContent;
+        combinedText += text; // Concatenate the text content of all text nodes
+      }
+  
+      // Replace words/phrases in the combined text based on sortedWordMap
+      for (const [, wordList] of sortedWordMap) {
+        for (let k = 0; k < wordList.length; k++) {
+          const wordObj = wordList[k];
+          const word = wordObj.text;
+          const regex = new RegExp(`\\b${word}\\b`, 'g');
+          combinedText = combinedText.replace(regex, redactFiller.filler);
         }
-        textNode.textContent = text;
+      }      
+  
+      // Split the combined text back into text nodes
+      const newTextNodes = combinedText.split(/(?<=.)(?=<)/); // Split at each tag boundary
+      for (let j = 0; j < textNodes.length; j++) {
+        const textNode = textNodes[j];
+        const newText = newTextNodes[j];
+        textNode.textContent = newText || ''; // Set new text content or empty string
       }
     }
+  
     const serializer = new XMLSerializer();
     let updatedFile = serializer.serializeToString(xmlDoc);
-    // Find the position of the complete XML declaration
     const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
     const index = updatedFile.indexOf(xmlDeclaration) + xmlDeclaration.length;
-    // Insert new line character after the complete XML declaration
     updatedFile = updatedFile.slice(0, index) + '\n' + updatedFile.slice(index);
     setRedactedFile(updatedFile);
   }, [parsedFile, wordMap, redactFiller]);
+  
+  
 
   useEffect(() => {
     if (redactedFile) {
@@ -84,7 +102,7 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
         // Store the output in the ref
         outputDocRef.current = output;
 
-        //Convert .docx document into a .pdf document
+        // Convert .docx document into a .pdf document
         try {
           const pdfArrayBuffer = await docxToPdfAxios(outputDocRef.current);
           setPdf(pdfArrayBuffer);
@@ -122,9 +140,11 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     saveAs(pdfBlob, fileName);
   };
   
-  
   const handleInputChange = (event) => {
-    setRedactFiller(event.target.value);
+    setRedactFiller(prevRedactFiller => ({
+      ...prevRedactFiller,
+      filler: event.target.value,
+    }));
   };
 
   return (
@@ -141,13 +161,14 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
         <div className='d-flex flex-wrap justify-content-center'>
           <Button className='mt-3 ms-3 me-3' size='lg' onClick={saveAsWordDoc}>Download as Word Doc</Button>
           <Button className='mt-3 ms-3 me-3' size='lg' onClick={saveAsPDF}>Download as PDF</Button>
+          <p className="mt-3">*Note: The styling in the current PDF and PDF preview above may slightly differ from the formatting in the Word document. For an exact replica of the Word document styling, we recommend downloading the document as a Word file and then converting it using Microsoft Word.</p>
         </div>
         <Container className="mt-5 d-flex flex-column justify-content-center align-items-center text-center" style={{ maxWidth: '900px' }}>
           <p>Need more changes? add more words or phrases to be redacted or changed the redaction word to another of your choice below. When you are ready to create a new iteration, click the 'Generate' button below.</p>
           <Form style={{ maxWidth: '300px' }}>
             <Form.Control
               className='text-center fs-3 ps-5 pe-5 border-primary'
-              defaultValue={redactFiller}
+              defaultValue={redactFiller.filler}
               onChange={handleInputChange}
               />
           </Form>

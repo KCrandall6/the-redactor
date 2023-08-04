@@ -4,7 +4,10 @@ import {Form} from 'react-bootstrap';
 const RedactorFill = ({redactFiller, setRedactFiller}) => {
 
   const handleInputChange = (event) => {
-    setRedactFiller(event.target.value);
+    setRedactFiller(prevRedactFiller => ({
+      ...prevRedactFiller,
+      filler: event.target.value,
+    }));
   };
 
   return (
@@ -13,7 +16,7 @@ const RedactorFill = ({redactFiller, setRedactFiller}) => {
       <Form >
         <Form.Control
           className='text-center fs-3 ps-5 pe-5 border-primary'
-          defaultValue={redactFiller}
+          defaultValue={redactFiller.filler}
           onChange={handleInputChange}
           />
       </Form>
