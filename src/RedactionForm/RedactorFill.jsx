@@ -18,7 +18,7 @@ const RedactorFill = ({redactFiller, setRedactFiller}) => {
     }));
   };
 
-  console.log('redact', redactFiller)
+  // console.log('redact', redactFiller)
 
   const handleStyleChange = (event) => {
     const targetId = event.target.id;
