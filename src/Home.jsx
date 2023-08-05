@@ -17,10 +17,14 @@ const Home = () => {
   const [wordMap, setWordMap] = useState({});
   const [redactFiller, setRedactFiller] = useState({
     filler: '[redacted]',
-    styling: {}
+    styling: {
+      bold: null,
+      italic: null,
+      color: null
+    }
   });
 
-  console.log('red', redactFiller)
+  // console.log('parsed file:', parsedFile)
 
   const onDocSuccess = async () => {
     try {
