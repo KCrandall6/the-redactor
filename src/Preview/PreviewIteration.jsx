@@ -21,90 +21,66 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(parsedFile, 'text/xml');
     const paragraphs = xmlDoc.getElementsByTagName('w:p');
-    
+  
     // Create an array of wordMap entries sorted by length in descending order
     const sortedWordMap = Object.entries(wordMap).sort(
       ([aKey], [bKey]) => bKey.length - aKey.length
     );
-    
+  
     for (let i = 0; i < paragraphs.length; i++) {
       const paragraph = paragraphs[i];
       const textNodes = paragraph.getElementsByTagName('w:t');
       let combinedText = '';
-    
+  
       for (let j = 0; j < textNodes.length; j++) {
         const textNode = textNodes[j];
         const text = textNode.textContent;
         combinedText += text; // Concatenate the text content of all text nodes
       }
-    
+  
       // Replace words/phrases in the combined text based on sortedWordMap
       for (const [, wordList] of sortedWordMap) {
         for (let k = 0; k < wordList.length; k++) {
           const wordObj = wordList[k];
           const word = wordObj.text;
           const regex = new RegExp(`\\b${word}\\b`, 'g');
-          combinedText = combinedText.replace(regex, `</w:t>${redactFiller.filler}</w:t>`);
+          combinedText = combinedText.replace(regex, redactFiller.filler);
         }
       }
-      
+  
       // Clear existing text nodes
       while (textNodes.length > 0) {
         textNodes[0].parentNode.removeChild(textNodes[0]);
       }
-            
+  
       // Split the combined text and create new run elements
       const newTextNodes = combinedText.split(/(<\/?w:t>)/); // Split at opening and closing <w:t> tags
       for (let j = 0; j < newTextNodes.length; j++) {
         const newText = newTextNodes[j];
-
+  
         if (newText === '<w:t>') {
           continue; // Skip opening <w:t> tags
         }
-
+  
         if (newText === '</w:t>') {
           continue; // Skip closing </w:t> tags
         }
-
+  
         // Create a new run element
         const newRun = xmlDoc.createElement('w:r');
-
-        if (newText.includes(redactFiller.filler)) {
-          const styling = redactFiller.styling;
-          const runProperties = xmlDoc.createElement('w:rPr');
-          if (styling.bold) {
-            const boldElement = xmlDoc.createElement('w:b');
-            runProperties.appendChild(boldElement);
-          }
-          if (styling.italic) {
-            const italicElement = xmlDoc.createElement('w:i');
-            runProperties.appendChild(italicElement);
-          }
-          if (styling.color) {
-            const colorElement = xmlDoc.createElement('w:color');
-            colorElement.setAttribute('w:val', styling.color);
-            runProperties.appendChild(colorElement);
-          }
-          newRun.appendChild(runProperties);
-
-          // Create a new text element and set its content
-          const newTextElement = xmlDoc.createElement('w:t');
-          newTextElement.textContent = redactFiller.filler;
-          
-          newRun.appendChild(newTextElement);
-        } else {
-          // Create a new text element and set its content
-          const newTextElement = xmlDoc.createElement('w:t');
-          newTextElement.textContent = newText || '';
-          
-          newRun.appendChild(newTextElement);
-        }
-
+  
+        // Create a new text element and set its content
+        const newTextElement = xmlDoc.createElement('w:t');
+        newTextElement.setAttribute('xml:space', 'preserve'); // Add xml:space attribute
+        newTextElement.textContent = newText || '';
+  
+        newRun.appendChild(newTextElement);
+  
         // Append the new run element to the paragraph
         paragraph.appendChild(newRun);
       }
     }
-    
+  
     const serializer = new XMLSerializer();
     let updatedFile = serializer.serializeToString(xmlDoc);
     const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
@@ -112,6 +88,8 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     updatedFile = updatedFile.slice(0, index) + '\n' + updatedFile.slice(index);
     setRedactedFile(updatedFile);
   }, [parsedFile, wordMap, redactFiller]);
+  
+  
   
   
   
