@@ -37,7 +37,7 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
         const text = textNode.textContent;
         combinedText += text; // Concatenate the text content of all text nodes
       }
-  
+
       // Replace words/phrases in the combined text based on sortedWordMap
       for (const [, wordList] of sortedWordMap) {
         for (let k = 0; k < wordList.length; k++) {
@@ -47,6 +47,20 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
           combinedText = combinedText.replace(regex, redactFiller.filler);
         }
       }
+
+      // for (let j = 0; j < textNodes.length; j++) {
+      //   const textNode = textNodes[j];
+      //   let text = textNode.textContent;
+      //   // Replace words/phrases in the text based on sortedWordMap
+      //   for (const [, wordList] of sortedWordMap) {
+      //     for (let k = 0; k < wordList.length; k++) {
+      //       const wordObj = wordList[k];
+      //       const word = wordObj.text;
+      //       const regex = new RegExp(`\\b${word}\\b`, 'g');
+      //       text = text.replace(regex, redactFiller.filler);
+      //     }
+      //   }
+      // }
   
       // Clear existing text nodes
       while (textNodes.length > 0) {
@@ -88,9 +102,6 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     updatedFile = updatedFile.slice(0, index) + '\n' + updatedFile.slice(index);
     setRedactedFile(updatedFile);
   }, [parsedFile, wordMap, redactFiller]);
-  
-  
-  
   
   
   
