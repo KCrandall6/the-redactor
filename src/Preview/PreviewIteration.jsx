@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Accordion, Button, Container, Form} from 'react-bootstrap';
 import Docxtemplater from 'docxtemplater';
-import PizZip from 'pizzip';
+import PizZip, { support } from 'pizzip';
 import { saveAs } from 'file-saver';
 import docxToPdfAxios from 'docx-to-pdf-axios';
 
@@ -26,17 +26,21 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     const sortedWordMap = Object.entries(wordMap).sort(
       ([aKey], [bKey]) => bKey.length - aKey.length
     );
+    // console.log('wordMap', sortedWordMap)
   
     for (let i = 0; i < paragraphs.length; i++) {
       const paragraph = paragraphs[i];
       const textNodes = paragraph.getElementsByTagName('w:t');
       let combinedText = '';
-  
+      let combinedTextArr = [];
+      let currWord = 0;
+      
+      // Create a string representing each paragraph
       for (let j = 0; j < textNodes.length; j++) {
         const textNode = textNodes[j];
         const text = textNode.textContent;
-        combinedText += text; // Concatenate the text content of all text nodes
-      }
+        combinedText += text;
+      };
 
       // Replace words/phrases in the combined text based on sortedWordMap
       for (const [, wordList] of sortedWordMap) {
@@ -46,52 +50,23 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
           const regex = new RegExp(`\\b${word}\\b`, 'g');
           combinedText = combinedText.replace(regex, redactFiller.filler);
         }
-      }
+      };
 
-      // for (let j = 0; j < textNodes.length; j++) {
-      //   const textNode = textNodes[j];
-      //   let text = textNode.textContent;
-      //   // Replace words/phrases in the text based on sortedWordMap
-      //   for (const [, wordList] of sortedWordMap) {
-      //     for (let k = 0; k < wordList.length; k++) {
-      //       const wordObj = wordList[k];
-      //       const word = wordObj.text;
-      //       const regex = new RegExp(`\\b${word}\\b`, 'g');
-      //       text = text.replace(regex, redactFiller.filler);
-      //     }
-      //   }
-      // }
-  
-      // Clear existing text nodes
-      while (textNodes.length > 0) {
-        textNodes[0].parentNode.removeChild(textNodes[0]);
-      }
-  
-      // Split the combined text and create new run elements
-      const newTextNodes = combinedText.split(/(<\/?w:t>)/); // Split at opening and closing <w:t> tags
-      for (let j = 0; j < newTextNodes.length; j++) {
-        const newText = newTextNodes[j];
-  
-        if (newText === '<w:t>') {
-          continue; // Skip opening <w:t> tags
+      // Create an array for comparison
+      combinedTextArr = combinedText.split(' ');
+      console.log('---------')
+      console.log('combinedText: ', combinedText);
+      console.log('combinedTextArr: ', combinedTextArr);
+      // Iterate through runElementNodes and get rid of words that are not 
+      for (let j = 0; j < textNodes.length; j++) {
+        let runElemArr = textNodes[j].textContent.split(' ');
+        console.log('runElemArr', runElemArr);
+        for (let k = 0; k < runElemArr.length; k++) {
+          if (runElemArr[k] !== combinedTextArr[currWord] && runElemArr[k] !== '') {
+            // keep going until runElemArr meets back up with combinedTextArr and replace all those elements in runElemArr with redactFiller.filler; *need to think about the edge case where it doesn't meet back up with it until the following runElemArr
+          }
         }
-  
-        if (newText === '</w:t>') {
-          continue; // Skip closing </w:t> tags
-        }
-  
-        // Create a new run element
-        const newRun = xmlDoc.createElement('w:r');
-  
-        // Create a new text element and set its content
-        const newTextElement = xmlDoc.createElement('w:t');
-        newTextElement.setAttribute('xml:space', 'preserve'); // Add xml:space attribute
-        newTextElement.textContent = newText || '';
-  
-        newRun.appendChild(newTextElement);
-  
-        // Append the new run element to the paragraph
-        paragraph.appendChild(newRun);
+        textNodes[j].textContent = runElemArr.join(' ')
       }
     }
   
@@ -103,11 +78,107 @@ const PreviewIteration = ({selectedFile, parsedFile, wordMap, redactFiller, setR
     setRedactedFile(updatedFile);
   }, [parsedFile, wordMap, redactFiller]);
   
+        // for (let t = 0; t < runElementNodes.length; t++) {
+      //   // if w:r includes a styling tag like w:color or bold, then break
+      //   console.log('r tag specific',runElementNodes[t])
+      //   console.log('tex tag specific',textNodes[t])
+      //   // if (otherNodes[t])
+      // }
   
+      // for (let j = 0; j < textNodes.length; j++) {
+      //   const textNode = textNodes[j];
+      //   // console.log('textNode', textNode);
+      //   // console.log('textContent', textNode.textContent)
+      //   // const text = textNode.textContent;
+      //   // textNodes[j].textContent = 'test'
+      //   for (const [, wordList] of sortedWordMap) {
+      //     for (let k = 0; k < wordList.length; k++) {
+      //       const wordObj = wordList[k];
+      //       const word = wordObj.text;
+      //       const regex = new RegExp(`\\b${word}\\b`, 'g');
+      //       textNodes[j].textContent = textNodes[j].textContent.replace(regex, redactFiller.filler);
+      //     }
+      //   }
+      //   // combinedText += text; // Concatenate the text content of all text nodes
+      // }
   
-  console.log('redact123', redactFiller)
-  console.log('file', redactedFile)
-  console.log('parsed', parsedFile)
+  // console.log('redact123', redactFiller)
+  // console.log('file', redactedFile)
+  // console.log('parsed', parsedFile)
+
+  // ORIGINAL WHERE WORDS/PHRASES ARE REDACTED BUT STYLING IS LOST
+  // useEffect(() => {
+  //   const parser = new DOMParser();
+  //   const xmlDoc = parser.parseFromString(parsedFile, 'text/xml');
+  //   const paragraphs = xmlDoc.getElementsByTagName('w:p');
+  
+  //   // Create an array of wordMap entries sorted by length in descending order
+  //   const sortedWordMap = Object.entries(wordMap).sort(
+  //     ([aKey], [bKey]) => bKey.length - aKey.length
+  //   );
+  
+  //   for (let i = 0; i < paragraphs.length; i++) {
+  //     const paragraph = paragraphs[i];
+  //     const textNodes = paragraph.getElementsByTagName('w:t');
+  //     let combinedText = '';
+  
+  //     for (let j = 0; j < textNodes.length; j++) {
+  //       const textNode = textNodes[j];
+  //       const text = textNode.textContent;
+  //       combinedText += text; // Concatenate the text content of all text nodes
+  //     }
+
+  //     // Replace words/phrases in the combined text based on sortedWordMap
+  //     for (const [, wordList] of sortedWordMap) {
+  //       for (let k = 0; k < wordList.length; k++) {
+  //         const wordObj = wordList[k];
+  //         const word = wordObj.text;
+  //         const regex = new RegExp(`\\b${word}\\b`, 'g');
+  //         combinedText = combinedText.replace(regex, redactFiller.filler);
+  //       }
+  //     }
+  
+  //     // Clear existing text nodes
+  //     while (textNodes.length > 0) {
+  //       textNodes[0].parentNode.removeChild(textNodes[0]);
+  //     }
+  
+  //     // Split the combined text and create new run elements
+  //     const newTextNodes = combinedText.split(/(<\/?w:t>)/); // Split at opening and closing <w:t> tags
+  //     for (let j = 0; j < newTextNodes.length; j++) {
+  //       const newText = newTextNodes[j];
+  
+  //       if (newText === '<w:t>') {
+  //         continue; // Skip opening <w:t> tags
+  //       }
+  
+  //       if (newText === '</w:t>') {
+  //         continue; // Skip closing </w:t> tags
+  //       }
+  
+  //       // Create a new run element
+  //       const newRun = xmlDoc.createElement('w:r');
+  
+  //       // Create a new text element and set its content
+  //       const newTextElement = xmlDoc.createElement('w:t');
+  //       newTextElement.setAttribute('xml:space', 'preserve'); // Add xml:space attribute
+  //       newTextElement.textContent = newText || '';
+  
+  //       newRun.appendChild(newTextElement);
+  
+  //       // Append the new run element to the paragraph
+  //       paragraph.appendChild(newRun);
+  //     }
+  //   }
+  
+  //   const serializer = new XMLSerializer();
+  //   let updatedFile = serializer.serializeToString(xmlDoc);
+  //   const xmlDeclaration = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  //   const index = updatedFile.indexOf(xmlDeclaration) + xmlDeclaration.length;
+  //   updatedFile = updatedFile.slice(0, index) + '\n' + updatedFile.slice(index);
+  //   setRedactedFile(updatedFile);
+  // }, [parsedFile, wordMap, redactFiller]);
+
 
   useEffect(() => {
     if (redactedFile) {
